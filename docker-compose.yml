@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: finance_db
+    environment:
+      POSTGRES_DB: ${DB_NAME:-finance_db}
+      POSTGRES_USER: ${DB_USERNAME:-finance_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-finance_pass}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-finance_user} -d ${DB_NAME:-finance_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
