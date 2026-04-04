@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
                 .code(ex.getErrorCode())
                 .details(ex.getMessage())
                 .build();
-        return new ResponseEntity<>(ApiResponse.error(errorDetail, ex.getMessage()), HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ResponseEntity<>(ApiResponse.error(errorDetail, ex.getMessage()), HttpStatus.valueOf(422));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
