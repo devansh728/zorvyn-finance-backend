@@ -7,6 +7,6 @@ spring:
   application:
     name: finance-backend
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:test}
   jpa:
     open-in-view: false

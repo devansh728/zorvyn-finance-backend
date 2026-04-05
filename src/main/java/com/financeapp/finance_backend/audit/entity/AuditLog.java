@@ -22,13 +22,13 @@ public class AuditLog {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
-    @Column(name = "entity_type", nullable = false, length = 50)
+    @Column(name = "entity_type", nullable = false, length = 100)
     private String entityType;
 
     @Column(name = "entity_id", nullable = false)
     private UUID entityId;
 
-    @Column(name = "action", nullable = false, length = 30)
+    @Column(name = "action", nullable = false, length = 100)
     private String action;
 
     @Column(name = "performed_by")

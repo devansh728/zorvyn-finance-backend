@@ -41,7 +41,7 @@ public class FinancialRecord {
     private BigDecimal amount;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "type", nullable = false, length = 10)
+    @Column(name = "type", nullable = false, length = 50)
     private TransactionType type;
 
     @Column(name = "transaction_date", nullable = false)
