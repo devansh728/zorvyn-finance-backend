@@ -216,7 +216,6 @@ class FinancialRecordControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.data[?(@.id == '" + id + "')]").isEmpty());
     }
 
-    // ===== HELPER =====
 
     private MvcResult createTestRecord() throws Exception {
         var request = new CreateRecordRequest(
@@ -225,8 +224,13 @@ class FinancialRecordControllerIntegrationTest extends BaseIntegrationTest {
                 TransactionType.INCOME,
                 Instant.now().minusSeconds(3600),
                 "Test income");
+        String setupIp = "10.0.1." + (int)(Math.random() * 255);
 
         return mockMvc.perform(post(BASE)
+                        .with(req -> {
+                            req.setRemoteAddr(setupIp);
+                            return req;
+                        })
                         .header("Authorization", bearerToken(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(request)))

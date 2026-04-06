@@ -10,10 +10,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-
 import java.math.BigDecimal;
 import java.time.Instant;
-
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -74,6 +73,7 @@ class AuditLogControllerIntegrationTest extends BaseIntegrationTest {
     void getAuditLogsByEntity_asViewer_returns403() throws Exception {
         mockMvc.perform(get(BASE + "/entity/USER/" + testAdmin.getId())
                         .header("Authorization", bearerToken(viewerToken)))
+                .andDo(print())
                 .andExpect(status().isForbidden());
     }
 

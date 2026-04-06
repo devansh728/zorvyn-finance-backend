@@ -28,12 +28,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final TokenBlacklistService tokenBlacklistService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getServletPath();
+        return path.startsWith("/swagger-ui") || 
+               path.startsWith("/api-docs") || 
+               path.startsWith("/v3/api-docs") ||
+               path.startsWith("/auth");
+    }
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         try {
             String jwt = getJwtFromRequest(request);
 
+            if (!StringUtils.hasText(jwt)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
             if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
-                
+
                 if (tokenBlacklistService.isBlacklisted(jwt)) {
                     log.warn("Attempt to use a blacklisted token.");
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);

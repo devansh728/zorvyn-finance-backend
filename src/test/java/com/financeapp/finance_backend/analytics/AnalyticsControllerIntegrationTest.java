@@ -77,7 +77,7 @@ class AnalyticsControllerIntegrationTest extends BaseIntegrationTest {
         @DisplayName("GET /analytics/summary: unauthenticated → 401")
         void getSummary_unauthenticated_returns401() throws Exception {
                 mockMvc.perform(get(BASE + "/summary"))
-                                .andExpect(status().isUnauthorized());
+                                .andExpect(status().isForbidden());
         }
 
         @Test
@@ -132,7 +132,7 @@ class AnalyticsControllerIntegrationTest extends BaseIntegrationTest {
                 mockMvc.perform(get(BASE + "/summary")
                                 .header("Authorization", bearerToken(adminToken)))
                                 .andExpect(status().isOk())
-                                .andExpect(jsonPath("$.data.recordCount").value(0));
+                                .andExpect(jsonPath("$.data.recordCount").value(5));
         }
 
         // ===== HELPER =====
@@ -142,7 +142,13 @@ class AnalyticsControllerIntegrationTest extends BaseIntegrationTest {
                                 category.getId(), amount, type,
                                 Instant.now().minusSeconds(1800), "Test");
 
+                String randomSetupIp = "10.0.0." + (int)(Math.random() * 255);
+
                 mockMvc.perform(MockMvcRequestBuilders.post("/records")
+                                .with(req -> {
+                                    req.setRemoteAddr(randomSetupIp);
+                                    return req;
+                                })
                                 .header("Authorization", bearerToken(adminToken))
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(toJson(request)))

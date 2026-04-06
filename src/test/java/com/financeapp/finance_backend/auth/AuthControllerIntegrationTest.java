@@ -10,7 +10,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
-
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -134,6 +134,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(post(BASE + "/refresh")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(request)))
+                .andDo(print())
                 .andExpect(status().is4xxClientError())
                 .andExpect(jsonPath("$.success").value(false));
     }
@@ -172,19 +173,26 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("5 consecutive failed logins → account locked")
     void fiveFailedLogins_locksAccount() throws Exception {
         createUser("lockme@test.com", UserRole.VIEWER, UserStatus.ACTIVE);
-
+        String fakeAttackerIp = "192.168.1.99";
         for (int i = 0; i < 5; i++) {
             mockMvc.perform(post(BASE + "/login")
+                            .with(request -> { 
+                                request.setRemoteAddr(fakeAttackerIp); 
+                                return request; 
+                            })
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(toJson(new LoginRequest("lockme@test.com", "WrongPass1!"))))
                     .andExpect(status().isUnauthorized());
         }
 
         // 6th attempt — even with correct password
-        mockMvc.perform(post(BASE + "/login")
+        mockMvc.perform(post(BASE + "/login").with(request -> { 
+                                request.setRemoteAddr(fakeAttackerIp); 
+                                return request; 
+                            })
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(new LoginRequest("lockme@test.com", "Password1!"))))
-                .andExpect(status().is4xxClientError())
+                .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.success").value(false));
     }
 }

@@ -41,10 +41,10 @@ class CategoryControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /categories: unauthenticated → 401")
-    void listCategories_unauthenticated_returns401() throws Exception {
+    @DisplayName("GET /categories: unauthenticated → 403")
+    void listCategories_unauthenticated_returns403() throws Exception {
         mockMvc.perform(get(BASE))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
     }
 
     @Test

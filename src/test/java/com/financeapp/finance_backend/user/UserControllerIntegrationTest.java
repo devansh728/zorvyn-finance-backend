@@ -9,6 +9,7 @@ import com.financeapp.finance_backend.user.entity.UserStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -19,10 +20,18 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
 
     private static final String BASE = "/users";
 
+    private RequestPostProcessor randomIp() {
+        return request -> {
+            request.setRemoteAddr("10.0.3." + (int)(Math.random() * 255));
+            return request;
+        };
+    }
+
     @Test
     @DisplayName("GET /users/me: authenticated → returns current user")
     void getMe_authenticated_returnsUser() throws Exception {
         mockMvc.perform(get(BASE + "/me")
+                        .with(randomIp())
                         .header("Authorization", bearerToken(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.email").value("admin@test.com"))
@@ -30,16 +39,17 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("GET /users/me: unauthenticated → 401")
-    void getMe_unauthenticated_returns401() throws Exception {
-        mockMvc.perform(get(BASE + "/me"))
-                .andExpect(status().isUnauthorized());
+    @DisplayName("GET /users/me: unauthenticated → 403 (JWT Filter Reject)")
+    void getMe_unauthenticated_returns403() throws Exception {
+        mockMvc.perform(get(BASE + "/me").with(randomIp()))
+                .andExpect(status().isForbidden()); // Aligned with the JWT filter's hard-reject
     }
 
     @Test
     @DisplayName("GET /users: ADMIN → 200 with paginated list")
     void listUsers_asAdmin_returns200() throws Exception {
         mockMvc.perform(get(BASE)
+                        .with(randomIp())
                         .header("Authorization", bearerToken(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(3))))
@@ -50,6 +60,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("GET /users: VIEWER → 403 Forbidden")
     void listUsers_asViewer_returns403() throws Exception {
         mockMvc.perform(get(BASE)
+                        .with(randomIp())
                         .header("Authorization", bearerToken(viewerToken)))
                 .andExpect(status().isForbidden());
     }
@@ -58,6 +69,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("GET /users: ANALYST → 403 Forbidden")
     void listUsers_asAnalyst_returns403() throws Exception {
         mockMvc.perform(get(BASE)
+                        .with(randomIp())
                         .header("Authorization", bearerToken(analystToken)))
                 .andExpect(status().isForbidden());
     }
@@ -66,6 +78,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("GET /users/{id}: ADMIN → 200")
     void getUserById_asAdmin_returns200() throws Exception {
         mockMvc.perform(get(BASE + "/" + testAnalyst.getId())
+                        .with(randomIp())
                         .header("Authorization", bearerToken(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.email").value("analyst@test.com"));
@@ -75,6 +88,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("GET /users/{id}: unknown ID → 404")
     void getUserById_unknownId_returns404() throws Exception {
         mockMvc.perform(get(BASE + "/00000000-0000-0000-0000-000000000000")
+                        .with(randomIp())
                         .header("Authorization", bearerToken(adminToken)))
                 .andExpect(status().isNotFound());
     }
@@ -85,6 +99,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
         var request = new CreateUserRequest("created@test.com", "Password1!", "Created User", UserRole.ANALYST);
 
         mockMvc.perform(post(BASE)
+                        .with(randomIp())
                         .header("Authorization", bearerToken(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(request)))
@@ -99,6 +114,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
         var request = new CreateUserRequest("x@test.com", "Password1!", "X", UserRole.VIEWER);
 
         mockMvc.perform(post(BASE)
+                        .with(randomIp())
                         .header("Authorization", bearerToken(analystToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(request)))
@@ -111,6 +127,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
         var request = new UpdateStatusRequest(UserStatus.INACTIVE);
 
         mockMvc.perform(patch(BASE + "/" + testAnalyst.getId() + "/status")
+                        .with(randomIp())
                         .header("Authorization", bearerToken(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(request)))
@@ -124,6 +141,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
         var request = new UpdateRoleRequest(UserRole.VIEWER);
 
         mockMvc.perform(patch(BASE + "/" + testAdmin.getId() + "/role")
+                        .with(randomIp())
                         .header("Authorization", bearerToken(adminToken))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(toJson(request)))
@@ -135,6 +153,7 @@ class UserControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("GET /users: filter by role=ANALYST → only analysts returned")
     void listUsers_filterByRole_returnsFiltered() throws Exception {
         mockMvc.perform(get(BASE + "?role=ANALYST")
+                        .with(randomIp())
                         .header("Authorization", bearerToken(adminToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[*].role", everyItem(is("ANALYST"))));

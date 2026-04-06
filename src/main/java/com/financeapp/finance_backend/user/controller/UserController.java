@@ -8,6 +8,10 @@ import com.financeapp.finance_backend.user.entity.UserRole;
 import com.financeapp.finance_backend.user.entity.UserStatus;
 import com.financeapp.finance_backend.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -32,18 +36,36 @@ public class UserController {
 
     private final UserService userService;
 
-    @Operation(summary = "Get current authenticated user profile")
+        @Operation(
+            summary = "Get current user profile",
+            description = "Returns the profile of the currently authenticated user.")
+        @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Profile retrieved", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Unexpected server error", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+        })
     @GetMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> getMe() {
         UUID currentUserId = SecurityContextUtil.getCurrentUserIdOrThrow();
         return ResponseEntity.ok(ApiResponse.success(userService.getMe(currentUserId), "Profile retrieved"));
     }
 
-    @Operation(summary = "List all users (admin)")
+        @Operation(
+            summary = "List users",
+            description = "Returns a paged list of users filtered by optional role and status. Requires ADMIN role.")
+        @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "Users retrieved", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - ADMIN role required", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Unexpected server error", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+        })
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<UserResponse>>> listUsers(
+            @Parameter(description = "Optional role filter", example = "ANALYST")
             @RequestParam(required = false) UserRole role,
+            @Parameter(description = "Optional status filter", example = "ACTIVE")
             @RequestParam(required = false) UserStatus status,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
 
@@ -58,14 +80,35 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.paged(page.getContent(), meta, "Users retrieved"));
     }
 
-    @Operation(summary = "Get user by ID (admin)")
+        @Operation(
+            summary = "Get user by ID",
+            description = "Returns one user by identifier. Requires ADMIN role.")
+        @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User retrieved", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - ADMIN role required", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Unexpected server error", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+        })
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable UUID id) {
+        public ResponseEntity<ApiResponse<UserResponse>> getUserById(
+            @Parameter(description = "User identifier", example = "f8bd6314-3ecc-4fd3-bf45-f8be61ad2a36")
+            @PathVariable UUID id) {
         return ResponseEntity.ok(ApiResponse.success(userService.getUserById(id), "User retrieved"));
     }
 
-    @Operation(summary = "Create user (admin)")
+        @Operation(
+            summary = "Create user",
+            description = "Creates a new user with a specified role. Requires ADMIN role.")
+        @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "User created", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - ADMIN role required", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "Duplicate user", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Validation failed", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Unexpected server error", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+        })
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
@@ -79,10 +122,21 @@ public class UserController {
                 .body(ApiResponse.success(created, "User created successfully"));
     }
 
-    @Operation(summary = "Update user status (admin)")
+        @Operation(
+            summary = "Update user status",
+            description = "Updates user account status. Requires ADMIN role.")
+        @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User status updated", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - ADMIN role required", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Validation failed", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Unexpected server error", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+        })
     @PatchMapping("/{id}/status")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> updateStatus(
+            @Parameter(description = "User identifier", example = "f8bd6314-3ecc-4fd3-bf45-f8be61ad2a36")
             @PathVariable UUID id,
             @Valid @RequestBody UpdateStatusRequest request,
             HttpServletRequest httpRequest) {
@@ -92,10 +146,21 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(updated, "User status updated"));
     }
 
-    @Operation(summary = "Update user role (admin)")
+        @Operation(
+            summary = "Update user role",
+            description = "Updates user role assignment. Requires ADMIN role.")
+        @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "200", description = "User role updated", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "403", description = "Forbidden - ADMIN role required", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "User not found", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "422", description = "Validation failed", content = @Content(schema = @Schema(implementation = ApiResponse.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "Unexpected server error", content = @Content(schema = @Schema(implementation = ApiResponse.class)))
+        })
     @PatchMapping("/{id}/role")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<UserResponse>> updateRole(
+            @Parameter(description = "User identifier", example = "f8bd6314-3ecc-4fd3-bf45-f8be61ad2a36")
             @PathVariable UUID id,
             @Valid @RequestBody UpdateRoleRequest request,
             HttpServletRequest httpRequest) {
